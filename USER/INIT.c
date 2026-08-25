@@ -1,137 +1,122 @@
 /**************************************************************
- * 
+ *
  * @brief
-   ZIN-7Ì×¼ş
-	 ·É¿Ø°®ºÃÈº551883670
-	 ÌÔ±¦µØÖ·£ºhttps://shop297229812.taobao.com/shop/view_shop.htm?mytmenu=mdianpu&user_number_id=2419305772
+   ZIN-7 å››è½´é£æ§
+   é£æ§äº¤æµç¾¤551883670
+   æ·˜å®åœ°å€ï¼šhttps://shop297229812.taobao.com/shop/view_shop.htm?mytmenu=mdianpu&user_number_id=2419305772
  ***************************************************************/
 #include "ALL_DEFINE.h"
 
 
-volatile uint32_t SysTick_count; //ÏµÍ³Ê±¼ä¼ÆÊı
-_st_Mpu MPU6050;   //MPU6050Ô­Ê¼Êı¾İ
-_st_AngE Angle;    //µ±Ç°½Ç¶È×ËÌ¬Öµ
-_st_Remote Remote; //Ò£¿ØÍ¨µÀÖµ
+volatile uint32_t SysTick_count;  // ç³»ç»Ÿæ—¶é’Ÿè®¡æ•°ï¼ˆæ¯«ç§’çº§ï¼Œç”¨äºè®¡æ—¶ï¼‰
+_st_Mpu MPU6050;                  // MPU6050ä¼ æ„Ÿå™¨åŸå§‹æ•°æ®ï¼ˆé™€èºä»ª+åŠ é€Ÿåº¦è®¡ï¼‰
+_st_AngE Angle;                   // å§¿æ€è§£ç®—åçš„è§’åº¦ï¼ˆpitchä¿¯ä»°ã€rollæ¨ªæ»šã€yawåèˆªï¼‰
+_st_Remote Remote;                // é¥æ§å™¨é€šé“å€¼ï¼ˆthræ²¹é—¨ã€pitchã€rollã€yawï¼‰
 
 
-_st_ALL_flag ALL_flag; //ÏµÍ³±êÖ¾Î»£¬°üº¬½âËø±êÖ¾Î»µÈ
+_st_ALL_flag ALL_flag;            // ç³»ç»Ÿæ ‡å¿—ä½ï¼ˆunlockè§£é”çŠ¶æ€ç­‰ï¼‰
 
 
-PidObject pidRateX; //ÄÚ»·PIDÊı¾İ
-PidObject pidRateY;
-PidObject pidRateZ;
+PidObject pidRateX;  // Xè½´è§’é€Ÿåº¦ç¯PIDï¼ˆå†…ç¯ï¼‰
+PidObject pidRateY;  // Yè½´è§’é€Ÿåº¦ç¯PIDï¼ˆå†…ç¯ï¼‰
+PidObject pidRateZ;  // Zè½´è§’é€Ÿåº¦ç¯PIDï¼ˆå†…ç¯ï¼‰
 
-PidObject pidPitch; //Íâ»·PIDÊı¾İ
-PidObject pidRoll;
-PidObject pidYaw;
+PidObject pidPitch;  // ä¿¯ä»°è§’è§’åº¦ç¯PIDï¼ˆå¤–ç¯ï¼‰
+PidObject pidRoll;   // æ¨ªæ»šè§’è§’åº¦ç¯PIDï¼ˆå¤–ç¯ï¼‰
+PidObject pidYaw;    // åèˆªè§’è§’åº¦ç¯PIDï¼ˆå¤–ç¯ï¼‰
 
-void pid_param_Init(void); //PID¿ØÖÆ²ÎÊı³õÊ¼»¯£¬¸ÄĞ´PID²¢²»»á±£´æÊı¾İ£¬Çëµ÷ÊÔÍê³ÉºóÖ±½ÓÔÚ³ÌĞòÀï¸ü¸Ä ÔÙÉÕÂ¼µ½·É¿Ø
+void pid_param_Init(void); // PIDæ§åˆ¶å‚æ•°åˆå§‹åŒ–å‡½æ•°ï¼ˆä¿®æ”¹PIDå‚æ•°åä¼šä¿å­˜åˆ°Flashï¼Œæ–­ç”µåä¸ä¸¢å¤±ï¼Œæ— éœ€æ¯æ¬¡ä¸Šç”µé‡æ–°è°ƒå‚ï¼‰
 
 
 /**************************************************************
- *  Õû¸öÏµÍ³ÍâÉèºÍ´«¸ĞÆ÷³õÊ¼»¯
- * @param[in] 
- * @param[out] 
- * @return     
+ *  æ•´ä¸ªç³»ç»Ÿæ‰€æœ‰å¤–è®¾åˆå§‹åŒ–
+ * @param[in]
+ * @param[out]
+ * @return
  ***************************************************************/
 void ALL_Init(void)
 {
 	USB_HID_Init();
-	pid_param_Init();       //PID²ÎÊı³õÊ¼»¯
-	 
-	
+	pid_param_Init();       // PIDå‚æ•°åˆå§‹åŒ–
+
 
 	delay_ms(100);
 
-	LEDInit();              //LEDÉÁµÆ³õÊ¼»¯
-	
-	IIC_Init();             //I2C³õÊ¼»¯		
-//----------------------------------------	
-// Ë®Æ½¾²Ö¹±ê¶¨£¬¸Ã¹¦ÄÜÖ»ĞèÒª½øĞĞÒ»´Î£¬²»ÒªÃ¿´Î½øĞĞ¡£µê¼Ò·¢»õÇ°ÒÑ¾­½øĞĞÒ»´Î±ê¶¨ÁË£¬±ê¶¨Íêºó»á×Ô¶¯±£´æµ½MCUµÄFLASHÖĞ¡£
-// ÈçĞèĞ£×¼£¬ÖØĞÂ´ò¿ª¼´¿É£¬ÑÓÊ±5SÊÇÎªÁË²åÉÏµç³ØºóÓĞ³ä×ãµÄÊ±¼ä½«·ÉĞĞÆ÷·ÅÔÚµØÉÏ½øĞĞË®Æ½¾²Ö¹±ê¶¨¡£
-//----------------------------------------		
-//	USART1_Config();  //±¸ÓÃ´®¿Ú     
-	
-	MpuInit();              //MPU6050³õÊ¼»¯
+	LEDInit();              // LEDç¯åˆå§‹åŒ–
 
-	NRF24L01_init();				//2.4GÒ£¿ØÍ¨ĞÅ³õÊ¼»¯
+	IIC_Init();             // I2Cåˆå§‹åŒ–
+//----------------------------------------
+// æ°´å¹³æ ¡å‡†å®å®šä¹‰ï¼Œè¿™ä¸ªå‡½æ•°åªéœ€è¦çƒ§å½•ä¸€æ¬¡ï¼Œä¸éœ€è¦æ¯æ¬¡è°ƒç”¨ï¼Œè€Œä¸”ä½ ä¹‹å‰å·²ç»è°ƒç”¨ä¸€æ¬¡äº†ï¼Œæ ¡å‡†æ•°æ®ä¼šè‡ªåŠ¨ä¿å­˜åˆ°MCUçš„FLASHä¸­
+// å¦‚æœæ ¡å‡†è¿‡ï¼Œä¸‹æ¬¡æ‰“å¼€å³å¯ï¼Œå¼€æœºæ—¶5Så†…å¦‚æœä¸æ¨æ²¹é—¨åˆ™ä¼šå°†å½“å‰å§¿æ€ä½œä¸ºæ°´å¹³åŸºå‡†è¿›è¡Œæ ¡å‡†
+//----------------------------------------
+//	USART1_Config();  //ä¸²å£é…ç½®
 
-	TIM2_PWM_Config();			//4Â·PWM³õÊ¼»¯
+	MpuInit();              // MPU6050åˆå§‹åŒ–
 
-	TIM3_Config();					//ÏµÍ³¹¤×÷ÖÜÆÚ³õÊ¼»¯ 
-	
+	NRF24L01_init();        // 2.4Gé¥æ§é€šä¿¡åˆå§‹åŒ–
+
+	TIM2_PWM_Config();      // 4è·¯PWMåˆå§‹åŒ–ï¼ˆæ§åˆ¶å››ä¸ªç”µæœºï¼‰
+
+	TIM3_Config();          // ç³»ç»Ÿå®šæ—¶å™¨åˆå§‹åŒ–
+
 }
 
 
 /**************************************************************
- *  ³õÊ¼»¯PID²ÎÊı
- * @brief Èç¹ûĞèÒª×Ô¼ºĞŞ¸ÄPIDÖµ£¬µ÷ÕâÀï¾Í¿ÉÒÔÁË
- * @param[out] 
- * @return     
+ *  åˆå§‹åŒ–PIDå‚æ•°
+ * @brief ä¸»è¦è°ƒè¿™é‡Œæ”¹PIDå€¼ï¼Œæ”¹å®Œå°±å¯ä»¥äº†
+ * @param[out]
+ * @return
  ***************************************************************/
 void pid_param_Init(void)
 {
-
-//	pidRateX.kp = 1.5f;//huanbaoxian
+//	pidRateX.kp = 1.5f;//ç¯ä¿çº¿
 //	pidRateY.kp = 1.5f;
 //	pidRateZ.kp = 6.0f;
-//	
+//
 //	pidRateX.ki = 0.04f;
 //	pidRateY.ki = 0.04f;
-//	pidRateZ.ki = 0.05f;	
-//	
+//	pidRateZ.ki = 0.05f;
+//
 //	pidRateX.kd = 0.06f;
 //	pidRateY.kd = 0.06f;
-//	pidRateZ.kd = 0.4f;	
-//	
+//	pidRateZ.kd = 0.4f;
+//
 //	pidPitch.kp = 4.0f;
 //	pidRoll.kp = 4.0f;
 //	pidYaw.kp = 3.0f;
-	
+
 //	pidRateX.kp = 2.0f;//1
 //	pidRateY.kp = 2.0f;
 //	pidRateZ.kp = 6.0f;
-//	
+//
 //	pidRateX.ki = 0.05f;
 //	pidRateY.ki = 0.05f;
-//	pidRateZ.ki = 0.05f;	
-//	
+//	pidRateZ.ki = 0.05f;
+//
 //	pidRateX.kd = 0.08f;
 //	pidRateY.kd = 0.08f;
-//	pidRateZ.kd = 0.5f;	
-//	
+//	pidRateZ.kd = 0.5f;
+//
 //	pidPitch.kp = 7.0f;
 //	pidRoll.kp = 7.0f;
 //	pidYaw.kp = 4.0f;
-	
-	pidRateX.kp = 2.0f;//1
+
+	// è§’é€Ÿåº¦ç¯PIDï¼ˆå†…ç¯ï¼‰- æ§åˆ¶è§’é€Ÿåº¦ï¼Œå“åº”å¿«
+	pidRateX.kp = 2.0f;
 	pidRateY.kp = 2.0f;
 	pidRateZ.kp = 6.0f;
-	
+
 	pidRateX.ki = 0.01f;
 	pidRateY.ki = 0.01f;
-	pidRateZ.ki = 0.05f;	
-	
+	pidRateZ.ki = 0.05f;
+
 	pidRateX.kd = 0.08f;
 	pidRateY.kd = 0.08f;
-	pidRateZ.kd = 0.5f;	
-	
+	pidRateZ.kd = 0.5f;
+
+	// è§’åº¦ç¯PIDï¼ˆå¤–ç¯ï¼‰- æ§åˆ¶è§’åº¦ï¼Œä¿è¯ç¨³å®š
 	pidPitch.kp = 7.0f;
 	pidRoll.kp = 7.0f;
-	pidYaw.kp = 4.0f;		
+	pidYaw.kp = 4.0f;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

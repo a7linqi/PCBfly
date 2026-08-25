@@ -38,6 +38,10 @@ PidObject *(pPidObject[])={&pidRateX,&pidRateY,&pidRateZ,&pidRoll,&pidPitch,&pid
 void FlightPidControl(float dt)
 {
 	// 状态机：WAITING_1 -> READY_11 -> PROCESS_31 -> EXIT_255
+	// 【重要】static变量只初始化一次，函数退出后值保留在内存中
+	// 下次调用时不会重新赋值，这就是状态机能记住"当前状态"的原理
+	// 【重要】这个status与MotorControl的status是独立的，互不干扰
+	// 两个函数各自有自己的状态机，通过ALL_flag全局变量协调
 	volatile static uint8_t status=WAITING_1;
 
 	switch(status)
@@ -70,28 +74,24 @@ void FlightPidControl(float dt)
 
 			// ========== 串级PID控制 ==========
 			// Roll轴（横滚）：外环PID -> 内环PID
-			pidUpdate(&pidRoll,dt);          // 计算外环（角度环）PID
-			pidRateX.desired = pidRoll.out;  // 外环输出作为内环的目标值
-			pidUpdate(&pidRateX,dt);         // 计算内环（角速度环）PID
+			CascadePID(&pidRateX, &pidRoll, dt);
 
 			// Pitch轴（俯仰）：外环PID -> 内环PID
-			pidUpdate(&pidPitch,dt);         // 计算外环（角度环）PID
-			pidRateY.desired = pidPitch.out; // 外环输出作为内环的目标值
-			pidUpdate(&pidRateY,dt);         // 计算内环（角速度环）PID
+			CascadePID(&pidRateY, &pidPitch, dt);
 
-			// Yaw轴（偏航）：直接调用串级PID函数
-			CascadePID(&pidRateZ,&pidYaw,dt);
+			// Yaw轴（偏航）：外环PID -> 内环PID
+			CascadePID(&pidRateZ, &pidYaw, dt);
 			break;
 		case EXIT_255:  // 退出控制
 			pidRest(pPidObject,6);    // 复位所有PID
 			status = WAITING_1;       // 回到等待状态
 			break;
-		default:
+		default:					//如果以上都不匹配执行这个
 			status = EXIT_255;
 			break;
 	}
-	// 紧急停机保护：任何时候检测到紧急标志，立即退出控制
-	if(ALL_flag.unlock == EMERGENT)
+	//这里在 switch 外面，每次函数调用都会执行
+	if(ALL_flag.unlock == EMERGENT)    	//紧急停机
 		status = EXIT_255;
 }
 
@@ -122,6 +122,10 @@ uint16_t low_thr_cnt;  // 低油门计数器，用于检测油门杆是否归零
 void MotorControl(void)
 {
 	// 状态机：WAITING_1 -> WAITING_2 -> PROCESS_31 -> EXIT_255
+	// 【重要】static变量只初始化一次，函数退出后值保留在内存中
+	// 下次调用时不会重新赋值，这就是状态机能记住"当前状态"的原理
+	// 【重要】这个status与FlightPidControl的status是独立的，互不干扰
+	// 两个函数各自有自己的状态机，通过ALL_flag全局变量协调
 	volatile static uint8_t status=WAITING_1;
 
 	// 紧急停机保护：任何时候检测到紧急标志，立即停止电机
@@ -148,10 +152,8 @@ void MotorControl(void)
 			break;
 		case PROCESS_31: // 正式电机输出
 			{
-				int16_t temp,thr;
+				int16_t temp;
 				temp = Remote.thr - 1000; // 油门值减去基准值（1000~2000 -> 0~1000）
-
-				thr = temp;
 
 				// 低油门检测：油门杆推到最低超过1.5秒，自动上锁
 				if(temp<10)
@@ -159,7 +161,6 @@ void MotorControl(void)
 					low_thr_cnt++;
 					if(low_thr_cnt>300) // 300次 * 5ms = 1500ms
 					{
-						thr = 0;
 						pidRest(pPidObject,6);
 						MOTOR1 = MOTOR2 = MOTOR3 = MOTOR4 = 0;
 						status = WAITING_2;
@@ -187,7 +188,7 @@ void MotorControl(void)
 			break;
 	}
 
-	// 将电机值写入定时器PWM寄存器，限幅0~1000
+	// 将电机值写入定时器PWM寄存器，限幅0~1000（改变占空比）
 	TIM2->CCR1 = LIMIT(MOTOR1,0,1000);
 	TIM2->CCR2 = LIMIT(MOTOR2,0,1000);
 	TIM2->CCR3 = LIMIT(MOTOR3,0,1000);

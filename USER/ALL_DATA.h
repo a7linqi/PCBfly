@@ -56,14 +56,11 @@ typedef struct{
 
 
 
+// 姿态角度结构体（由姿态解算得到）
 typedef struct{
-
-	float roll;
-
-	float pitch;
-
-	float yaw;
-
+	float roll;    // 横滚角（左右倾斜角度，单位：度）
+	float pitch;   // 俯仰角（前后低头角度，单位：度）
+	float yaw;     // 偏航角（左右转头角度，单位：度）
 }_st_AngE;
 
 
@@ -72,26 +69,18 @@ typedef struct{
 
 
 
+// 遥控器通道数据结构体
+// 各通道值范围：1000~2000（中值1500）
 typedef struct
-
 {
-
-	uint16_t roll;
-
-	uint16_t pitch;
-
-	uint16_t thr;
-
-	uint16_t yaw;
-
-	uint16_t AUX1;
-
-	uint16_t AUX2;
-
-	uint16_t AUX3;
-
-	uint16_t AUX4;
-
+	uint16_t roll;    // 横滚通道（左右倾斜，控制左右飞）
+	uint16_t pitch;   // 俯仰通道（前后倾斜，控制前后飞）
+	uint16_t thr;     // 油门通道（上下推拉，控制上升下降）
+	uint16_t yaw;     // 偏航通道（左右旋转，控制转向）
+	uint16_t AUX1;    // 辅助通道1（可自定义功能）
+	uint16_t AUX2;    // 辅助通道2
+	uint16_t AUX3;    // 辅助通道3
+	uint16_t AUX4;    // 辅助通道4
 }_st_Remote;
 
 
@@ -140,7 +129,7 @@ typedef volatile struct
 
 {
 
-	uint8_t unlock:1;		//位域声明
+	uint8_t unlock:1;		//位域声明（1bit：0或我）
 
 }_st_ALL_flag;
 
